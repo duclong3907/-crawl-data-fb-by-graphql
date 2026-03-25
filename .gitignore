@@ -1,0 +1,16 @@
+# Build
+bin/
+obj/
+.vs/
+
+# Python
+Scripts/chrome_profile/
+Scripts/chrome_worker_*/
+Scripts/_cookies.json
+Scripts/_fb_dtsg.txt
+Scripts/_debug_*.json
+Scripts/_batch_*.txt
+Scripts/__pycache__/
+
+# Plans
+plans/

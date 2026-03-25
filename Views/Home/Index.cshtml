@@ -1,0 +1,703 @@
+@{
+    ViewData["Title"] = "Group Posts Crawler";
+}
+
+<style>
+    :root {
+        --bg-primary: #0a0a0f;
+        --bg-secondary: #12121a;
+        --bg-card: #1a1a2e;
+        --bg-input: #16162a;
+        --border: #2a2a4a;
+        --text-primary: #e8e8f0;
+        --text-secondary: #8888aa;
+        --accent: #6c5ce7;
+        --accent-hover: #7c6cf7;
+        --accent-glow: rgba(108, 92, 231, 0.3);
+        --success: #00d2d3;
+        --danger: #ff6b6b;
+        --warning: #feca57;
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+        background: var(--bg-primary);
+        color: var(--text-primary);
+        font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+        min-height: 100vh;
+    }
+
+    .container-main {
+        max-width: 1200px;
+        margin: 0 auto;
+        padding: 2rem 1.5rem;
+    }
+
+    .header {
+        text-align: center;
+        margin-bottom: 2rem;
+    }
+
+    .header h1 {
+        font-size: 1.8rem;
+        font-weight: 700;
+        background: linear-gradient(135deg, #6c5ce7, #00d2d3);
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+        margin-bottom: 0.5rem;
+    }
+
+    .header p {
+        color: var(--text-secondary);
+        font-size: 0.9rem;
+    }
+
+    /* Form Card */
+    .form-card {
+        background: var(--bg-card);
+        border: 1px solid var(--border);
+        border-radius: 12px;
+        padding: 1.5rem;
+        margin-bottom: 2rem;
+    }
+
+    .form-row {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 1rem;
+        margin-bottom: 1rem;
+    }
+
+    .form-row.full {
+        grid-template-columns: 1fr;
+    }
+
+    .form-group {
+        display: flex;
+        flex-direction: column;
+        gap: 0.4rem;
+    }
+
+    .form-group label {
+        font-size: 0.8rem;
+        color: var(--text-secondary);
+        font-weight: 600;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+    }
+
+    .form-group input {
+        background: var(--bg-input);
+        border: 1px solid var(--border);
+        border-radius: 8px;
+        color: var(--text-primary);
+        padding: 0.7rem 1rem;
+        font-size: 0.95rem;
+        transition: border-color 0.2s;
+        outline: none;
+    }
+
+    .form-group input:focus {
+        border-color: var(--accent);
+        box-shadow: 0 0 0 3px var(--accent-glow);
+    }
+
+    .form-group input::placeholder {
+        color: #555;
+    }
+
+    .form-actions {
+        display: flex;
+        gap: 1rem;
+        align-items: center;
+        margin-top: 1rem;
+    }
+
+    .btn-crawl {
+        background: linear-gradient(135deg, #6c5ce7, #5a4bd1);
+        color: white;
+        border: none;
+        border-radius: 8px;
+        padding: 0.8rem 2rem;
+        font-size: 1rem;
+        font-weight: 600;
+        cursor: pointer;
+        transition: all 0.2s;
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+    }
+
+    .btn-crawl:hover {
+        background: linear-gradient(135deg, #7c6cf7, #6c5ce7);
+        transform: translateY(-1px);
+        box-shadow: 0 4px 15px var(--accent-glow);
+    }
+
+    .btn-crawl:disabled {
+        opacity: 0.5;
+        cursor: not-allowed;
+        transform: none;
+    }
+
+    .btn-crawl .spinner {
+        display: none;
+        width: 18px;
+        height: 18px;
+        border: 2px solid rgba(255,255,255,0.3);
+        border-top-color: white;
+        border-radius: 50%;
+        animation: spin 0.8s linear infinite;
+    }
+
+    .btn-crawl.loading .spinner { display: block; }
+    .btn-crawl.loading .btn-text { display: none; }
+
+    @@keyframes spin {
+        to { transform: rotate(360deg); }
+    }
+
+    .checkbox-group {
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+        color: var(--text-secondary);
+        font-size: 0.85rem;
+    }
+
+    .checkbox-group input[type="checkbox"] {
+        accent-color: var(--accent);
+        width: 16px;
+        height: 16px;
+    }
+
+    /* Status */
+    .status-bar {
+        display: none;
+        background: var(--bg-secondary);
+        border: 1px solid var(--border);
+        border-radius: 8px;
+        padding: 1rem;
+        margin-bottom: 1.5rem;
+        font-size: 0.9rem;
+        color: var(--text-secondary);
+    }
+
+    .status-bar.visible { display: block; }
+
+    .status-bar .status-text {
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+    }
+
+    .status-bar .dot {
+        width: 8px;
+        height: 8px;
+        border-radius: 50%;
+        background: var(--accent);
+        animation: pulse 1.5s ease-in-out infinite;
+    }
+
+    @@keyframes pulse {
+        0%, 100% { opacity: 1; }
+        50% { opacity: 0.3; }
+    }
+
+    /* Guide Card */
+    .guide-card {
+        background: var(--bg-card);
+        border: 1px solid var(--border);
+        border-radius: 12px;
+        padding: 1.5rem;
+        margin-bottom: 2rem;
+    }
+
+    .guide-card h3 {
+        font-size: 1rem;
+        color: var(--warning);
+        margin-bottom: 1rem;
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+    }
+
+    .guide-card ol {
+        padding-left: 1.5rem;
+        color: var(--text-secondary);
+        font-size: 0.85rem;
+        line-height: 1.8;
+    }
+
+    .guide-card code {
+        background: var(--bg-input);
+        padding: 0.15rem 0.5rem;
+        border-radius: 4px;
+        color: var(--success);
+        font-family: 'Consolas', monospace;
+        font-size: 0.82rem;
+    }
+
+    /* Error */
+    .error-card {
+        display: none;
+        background: rgba(255, 107, 107, 0.1);
+        border: 1px solid rgba(255, 107, 107, 0.3);
+        border-radius: 8px;
+        padding: 1rem;
+        margin-bottom: 1.5rem;
+        color: var(--danger);
+        font-size: 0.9rem;
+    }
+
+    .error-card.visible { display: block; }
+
+    /* Results */
+    .results-wrapper {
+        display: none;
+    }
+
+    .results-wrapper.visible { display: block; }
+
+    .results-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 1rem;
+    }
+
+    .results-header h2 {
+        font-size: 1.2rem;
+        font-weight: 600;
+    }
+
+    .results-meta {
+        display: flex;
+        gap: 1.5rem;
+        color: var(--text-secondary);
+        font-size: 0.85rem;
+    }
+
+    .results-meta .badge {
+        background: var(--bg-input);
+        padding: 0.3rem 0.8rem;
+        border-radius: 20px;
+        border: 1px solid var(--border);
+    }
+
+    .results-meta .badge strong {
+        color: var(--success);
+    }
+
+    /* Tabs */
+    .tabs {
+        display: flex;
+        gap: 0;
+        border-bottom: 1px solid var(--border);
+        margin-bottom: 1rem;
+    }
+
+    .tab-btn {
+        background: none;
+        border: none;
+        color: var(--text-secondary);
+        padding: 0.7rem 1.5rem;
+        font-size: 0.9rem;
+        cursor: pointer;
+        border-bottom: 2px solid transparent;
+        transition: all 0.2s;
+    }
+
+    .tab-btn:hover { color: var(--text-primary); }
+
+    .tab-btn.active {
+        color: var(--accent);
+        border-bottom-color: var(--accent);
+    }
+
+    .tab-content { display: none; }
+    .tab-content.active { display: block; }
+
+    /* Posts Table */
+    .posts-table {
+        width: 100%;
+        border-collapse: collapse;
+        font-size: 0.85rem;
+    }
+
+    .posts-table th {
+        background: var(--bg-input);
+        color: var(--text-secondary);
+        font-weight: 600;
+        text-align: left;
+        padding: 0.7rem 1rem;
+        border-bottom: 1px solid var(--border);
+        font-size: 0.75rem;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+        white-space: nowrap;
+    }
+
+    .posts-table td {
+        padding: 0.7rem 1rem;
+        border-bottom: 1px solid rgba(42, 42, 74, 0.5);
+        vertical-align: top;
+    }
+
+    .posts-table tr:hover td {
+        background: rgba(108, 92, 231, 0.05);
+    }
+
+    .posts-table .col-content {
+        max-width: 400px;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+    }
+
+    .posts-table .col-content:hover {
+        white-space: normal;
+        word-break: break-word;
+    }
+
+    .posts-table .col-author {
+        color: var(--accent);
+        font-weight: 500;
+        white-space: nowrap;
+    }
+
+    .posts-table .col-time {
+        color: var(--text-secondary);
+        white-space: nowrap;
+        font-size: 0.8rem;
+    }
+
+    .posts-table .col-stats {
+        white-space: nowrap;
+        font-size: 0.8rem;
+    }
+
+    .stat-badge {
+        display: inline-block;
+        padding: 0.15rem 0.4rem;
+        border-radius: 4px;
+        font-size: 0.75rem;
+        margin-right: 0.3rem;
+    }
+
+    .stat-reactions { background: rgba(255,107,107,0.15); color: #ff6b6b; }
+    .stat-comments { background: rgba(0,210,211,0.15); color: #00d2d3; }
+    .stat-shares { background: rgba(254,202,87,0.15); color: #feca57; }
+
+    .post-link {
+        color: var(--accent);
+        text-decoration: none;
+        font-size: 0.8rem;
+    }
+
+    .post-link:hover { text-decoration: underline; }
+
+    /* JSON view */
+    .json-view {
+        background: var(--bg-input);
+        border: 1px solid var(--border);
+        border-radius: 8px;
+        padding: 1rem;
+        overflow-x: auto;
+        max-height: 600px;
+        overflow-y: auto;
+    }
+
+    .json-view pre {
+        color: var(--text-secondary);
+        font-family: 'Consolas', monospace;
+        font-size: 0.8rem;
+        white-space: pre-wrap;
+        word-break: break-all;
+    }
+
+    /* Export button */
+    .btn-export {
+        background: var(--bg-card);
+        border: 1px solid var(--border);
+        color: var(--text-secondary);
+        padding: 0.5rem 1rem;
+        border-radius: 6px;
+        cursor: pointer;
+        font-size: 0.8rem;
+        transition: all 0.2s;
+    }
+
+    .btn-export:hover {
+        border-color: var(--accent);
+        color: var(--text-primary);
+    }
+</style>
+
+<div class="container-main">
+    <div class="header">
+        <h1>⚡ Facebook Group Posts Crawler</h1>
+        <p>Crawl bài viết nhóm Facebook qua GraphQL API</p>
+    </div>
+
+    <!-- Guide -->
+    <div class="guide-card" id="guideCard">
+        <h3>📋 Cách hoạt động</h3>
+        <ol>
+            <li>Nhập <strong>URL nhóm Facebook</strong> bên dưới rồi nhấn "Bắt Đầu Cào"</li>
+            <li>Chrome sẽ <strong>tự động mở</strong> — đăng nhập Facebook nếu lần đầu</li>
+            <li>Script tự lấy cookies, token, và <code>doc_id</code> từ GraphQL</li>
+            <li>Sau khi lấy xong, Chrome đóng → bắt đầu cào bài viết qua HTTP</li>
+            <li>Kết quả hiển thị dạng <strong>Bảng</strong> hoặc <strong>JSON</strong>, có thể xuất file</li>
+        </ol>
+    </div>
+
+    <!-- Form -->
+    <div class="form-card">
+        <div class="form-row full">
+            <div class="form-group">
+                <label>Group URL</label>
+                <input type="text" id="groupUrl"
+                       placeholder="https://www.facebook.com/groups/your-group-id" />
+            </div>
+        </div>
+        <div class="form-row">
+            <div class="form-group">
+                <label>Từ ngày</label>
+                <input type="date" id="dateFrom" />
+            </div>
+            <div class="form-group">
+                <label>Đến ngày</label>
+                <input type="date" id="dateTo" />
+            </div>
+        </div>
+        <div class="form-row">
+            <div class="form-group">
+                <label>Số bài tối đa</label>
+                <input type="number" id="maxPosts" value="100" min="1" max="5000" />
+            </div>
+            <div class="form-group" style="justify-content: flex-end;">
+                <div class="checkbox-group">
+                    <input type="checkbox" id="clearCookies" />
+                    <label for="clearCookies" style="text-transform:none;font-weight:400;">
+                        Xóa cookie (đăng nhập lại)
+                    </label>
+                </div>
+            </div>
+        </div>
+        <div class="form-actions">
+            <button class="btn-crawl" id="btnCrawl" onclick="startCrawl()">
+                <div class="spinner"></div>
+                <span class="btn-text">🚀 Bắt Đầu Cào</span>
+            </button>
+        </div>
+    </div>
+
+    <!-- Status -->
+    <div class="status-bar" id="statusBar">
+        <div class="status-text">
+            <div class="dot"></div>
+            <span id="statusText">Đang khởi tạo...</span>
+        </div>
+    </div>
+
+    <!-- Error -->
+    <div class="error-card" id="errorCard"></div>
+
+    <!-- Results -->
+    <div class="results-wrapper" id="resultsWrapper">
+        <div class="results-header">
+            <h2 id="resultsTitle">Kết quả</h2>
+            <div class="results-meta">
+                <span class="badge">Tổng: <strong id="totalPosts">0</strong></span>
+                <button class="btn-export" onclick="exportJson()">📥 Xuất JSON</button>
+            </div>
+        </div>
+
+        <div class="tabs">
+            <button class="tab-btn active" onclick="switchTab('table')">📊 Bảng</button>
+            <button class="tab-btn" onclick="switchTab('json')">📝 JSON</button>
+        </div>
+
+        <div class="tab-content active" id="tabTable">
+            <div style="overflow-x: auto;">
+                <table class="posts-table">
+                    <thead>
+                        <tr>
+                            <th>#</th>
+                            <th>Tác giả</th>
+                            <th>Nội dung</th>
+                            <th>Thời gian</th>
+                            <th>Tương tác</th>
+                            <th>Link</th>
+                        </tr>
+                    </thead>
+                    <tbody id="postsBody"></tbody>
+                </table>
+            </div>
+        </div>
+
+        <div class="tab-content" id="tabJson">
+            <div class="json-view">
+                <pre id="jsonOutput"></pre>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    let crawlData = null;
+
+    async function startCrawl() {
+        const groupUrl = document.getElementById('groupUrl').value.trim();
+        const dateFrom = document.getElementById('dateFrom').value;
+        const dateTo = document.getElementById('dateTo').value;
+        const maxPosts = parseInt(document.getElementById('maxPosts').value) || 100;
+        const clearCookies = document.getElementById('clearCookies').checked;
+
+        if (!groupUrl) {
+            showError('Vui lòng nhập Group URL');
+            return;
+        }
+
+        const btn = document.getElementById('btnCrawl');
+        btn.classList.add('loading');
+        btn.disabled = true;
+
+        showStatus('Đang kết nối Chrome và đăng nhập Facebook...');
+        hideError();
+        hideResults();
+
+        try {
+            const response = await fetch('/Home/Crawl', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    groupUrl: groupUrl,
+                    dateFrom: dateFrom,
+                    dateTo: dateTo,
+                    maxPosts: maxPosts,
+                    clearCookies: clearCookies
+                })
+            });
+
+            const data = await response.json();
+            crawlData = data;
+
+            if (!data.success) {
+                showError(data.error || 'Có lỗi xảy ra');
+                return;
+            }
+
+            showResults(data);
+        } catch (err) {
+            showError('Lỗi kết nối: ' + err.message);
+        } finally {
+            btn.classList.remove('loading');
+            btn.disabled = false;
+            hideStatus();
+        }
+    }
+
+    function showStatus(text) {
+        const bar = document.getElementById('statusBar');
+        bar.classList.add('visible');
+        document.getElementById('statusText').textContent = text;
+    }
+
+    function hideStatus() {
+        document.getElementById('statusBar').classList.remove('visible');
+    }
+
+    function showError(msg) {
+        const card = document.getElementById('errorCard');
+        card.textContent = '❌ ' + msg;
+        card.classList.add('visible');
+    }
+
+    function hideError() {
+        document.getElementById('errorCard').classList.remove('visible');
+    }
+
+    function hideResults() {
+        document.getElementById('resultsWrapper').classList.remove('visible');
+    }
+
+    function showResults(data) {
+        document.getElementById('resultsWrapper').classList.add('visible');
+
+        const title = data.group_name
+            ? `${data.group_name} (${data.total} bài)`
+            : `Kết quả: ${data.total} bài viết`;
+        document.getElementById('resultsTitle').textContent = title;
+        document.getElementById('totalPosts').textContent = data.total;
+
+        // Build table
+        const tbody = document.getElementById('postsBody');
+        tbody.innerHTML = '';
+
+        (data.posts || []).forEach((post, i) => {
+            const tr = document.createElement('tr');
+            const content = post.content || '[Không có nội dung]';
+            const shortContent = content.length > 150
+                ? content.substring(0, 150) + '...'
+                : content;
+
+            tr.innerHTML = `
+                <td>${i + 1}</td>
+                <td class="col-author">${escHtml(post.author_name || 'N/A')}</td>
+                <td class="col-content" title="${escHtml(content)}">${escHtml(shortContent)}</td>
+                <td class="col-time">${escHtml(post.created_time_formatted || '')}</td>
+                <td class="col-stats">
+                    <span class="stat-badge stat-reactions">❤️ ${post.reaction_count || 0}</span>
+                    <span class="stat-badge stat-comments">💬 ${post.comment_count || 0}</span>
+                    <span class="stat-badge stat-shares">🔄 ${post.share_count || 0}</span>
+                </td>
+                <td>
+                    ${post.post_url
+                    ? `<a href="${escHtml(post.post_url)}" target="_blank" class="post-link">Xem ↗</a>`
+                    : '-'}
+                </td>
+            `;
+            tbody.appendChild(tr);
+        });
+
+        // JSON output
+        document.getElementById('jsonOutput').textContent =
+            JSON.stringify(data, null, 2);
+    }
+
+    function switchTab(tab) {
+        document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+        document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
+
+        if (tab === 'table') {
+            document.querySelector('.tab-btn:nth-child(1)').classList.add('active');
+            document.getElementById('tabTable').classList.add('active');
+        } else {
+            document.querySelector('.tab-btn:nth-child(2)').classList.add('active');
+            document.getElementById('tabJson').classList.add('active');
+        }
+    }
+
+    function exportJson() {
+        if (!crawlData) return;
+        const blob = new Blob(
+            [JSON.stringify(crawlData, null, 2)],
+            { type: 'application/json' }
+        );
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `group_posts_${crawlData.group_id || 'export'}_${Date.now()}.json`;
+        a.click();
+        URL.revokeObjectURL(url);
+    }
+
+    function escHtml(str) {
+        const d = document.createElement('div');
+        d.textContent = str;
+        return d.innerHTML;
+    }
+</script>
