@@ -172,37 +172,198 @@
         height: 16px;
     }
 
-    /* Status */
-    .status-bar {
+    /* Progress Panel */
+    .progress-panel {
         display: none;
-        background: var(--bg-secondary);
+        background: var(--bg-card);
         border: 1px solid var(--border);
-        border-radius: 8px;
-        padding: 1rem;
-        margin-bottom: 1.5rem;
-        font-size: 0.9rem;
-        color: var(--text-secondary);
+        border-radius: 12px;
+        padding: 1.5rem;
+        margin-bottom: 2rem;
     }
 
-    .status-bar.visible { display: block; }
+    .progress-panel.visible { display: block; }
 
-    .status-bar .status-text {
+    .progress-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 1rem;
+    }
+
+    .progress-header .phase-label {
         display: flex;
         align-items: center;
         gap: 0.5rem;
+        font-weight: 600;
+        font-size: 0.95rem;
     }
 
-    .status-bar .dot {
-        width: 8px;
-        height: 8px;
+    .progress-header .phase-dot {
+        width: 10px;
+        height: 10px;
         border-radius: 50%;
         background: var(--accent);
         animation: pulse 1.5s ease-in-out infinite;
     }
 
+    .progress-header .elapsed-time {
+        font-size: 0.85rem;
+        color: var(--text-secondary);
+        font-variant-numeric: tabular-nums;
+        display: flex;
+        align-items: center;
+        gap: 0.4rem;
+    }
+
     @@keyframes pulse {
         0%, 100% { opacity: 1; }
         50% { opacity: 0.3; }
+    }
+
+    .progress-bar-container {
+        background: var(--bg-input);
+        border-radius: 10px;
+        height: 28px;
+        overflow: hidden;
+        position: relative;
+        margin-bottom: 0.8rem;
+        border: 1px solid var(--border);
+    }
+
+    .progress-bar-fill {
+        height: 100%;
+        border-radius: 10px;
+        background: linear-gradient(90deg, #6c5ce7, #00d2d3);
+        transition: width 0.5s ease;
+        min-width: 0;
+    }
+
+    .progress-bar-fill.indeterminate {
+        width: 100% !important;
+        background: linear-gradient(90deg,
+            var(--bg-input) 0%,
+            #6c5ce7 20%,
+            #00d2d3 50%,
+            #6c5ce7 80%,
+            var(--bg-input) 100%
+        );
+        background-size: 200% 100%;
+        animation: shimmer 2s linear infinite;
+    }
+
+    @@keyframes shimmer {
+        0% { background-position: 200% 0; }
+        100% { background-position: -200% 0; }
+    }
+
+    .progress-bar-text {
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 0.8rem;
+        font-weight: 600;
+        color: white;
+        text-shadow: 0 1px 2px rgba(0,0,0,0.5);
+        z-index: 1;
+    }
+
+    .progress-details {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        font-size: 0.82rem;
+        color: var(--text-secondary);
+    }
+
+    .progress-steps {
+        display: flex;
+        gap: 0;
+        margin-top: 1.2rem;
+        border-top: 1px solid var(--border);
+        padding-top: 1rem;
+    }
+
+    .step-item {
+        flex: 1;
+        text-align: center;
+        position: relative;
+    }
+
+    .step-item::after {
+        content: '';
+        position: absolute;
+        top: 14px;
+        right: -50%;
+        width: 100%;
+        height: 2px;
+        background: var(--border);
+        z-index: 0;
+    }
+
+    .step-item:last-child::after { display: none; }
+
+    .step-item.active::after,
+    .step-item.done::after {
+        background: var(--accent);
+    }
+
+    .step-dot {
+        width: 28px;
+        height: 28px;
+        border-radius: 50%;
+        background: var(--bg-input);
+        border: 2px solid var(--border);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        margin: 0 auto 0.4rem;
+        font-size: 0.75rem;
+        position: relative;
+        z-index: 1;
+        transition: all 0.3s;
+    }
+
+    .step-item.active .step-dot {
+        border-color: var(--accent);
+        background: var(--accent);
+        color: white;
+        box-shadow: 0 0 10px var(--accent-glow);
+    }
+
+    .step-item.done .step-dot {
+        border-color: var(--success);
+        background: var(--success);
+        color: white;
+    }
+
+    .step-label {
+        font-size: 0.72rem;
+        color: var(--text-secondary);
+        transition: color 0.3s;
+    }
+
+    .step-item.active .step-label {
+        color: var(--accent);
+        font-weight: 600;
+    }
+
+    .step-item.done .step-label {
+        color: var(--success);
+    }
+
+    .results-meta .badge-time {
+        background: rgba(108, 92, 231, 0.15);
+        border-color: rgba(108, 92, 231, 0.3);
+    }
+
+    .results-meta .badge-time strong {
+        color: var(--accent);
     }
 
     /* Guide Card */
@@ -494,11 +655,50 @@
         </div>
     </div>
 
-    <!-- Status -->
-    <div class="status-bar" id="statusBar">
-        <div class="status-text">
-            <div class="dot"></div>
-            <span id="statusText">Đang khởi tạo...</span>
+    <!-- Progress Panel -->
+    <div class="progress-panel" id="progressPanel">
+        <div class="progress-header">
+            <div class="phase-label">
+                <div class="phase-dot"></div>
+                <span id="progressPhaseText">Đang khởi tạo...</span>
+            </div>
+            <div class="elapsed-time">
+                <span>⏱️</span>
+                <span id="elapsedTime">00:00</span>
+            </div>
+        </div>
+
+        <div class="progress-bar-container">
+            <div class="progress-bar-fill indeterminate" id="progressBarFill" style="width: 0%"></div>
+            <div class="progress-bar-text" id="progressBarText">Đang chuẩn bị...</div>
+        </div>
+
+        <div class="progress-details">
+            <div>
+                <span id="progressMessage">Đang kết nối...</span>
+            </div>
+            <div style="font-variant-numeric: tabular-nums;">
+                <span id="progressStats"></span>
+            </div>
+        </div>
+
+        <div class="progress-steps">
+            <div class="step-item active" id="step-login">
+                <div class="step-dot">1</div>
+                <div class="step-label">Đăng nhập</div>
+            </div>
+            <div class="step-item" id="step-capture">
+                <div class="step-dot">2</div>
+                <div class="step-label">Bắt config</div>
+            </div>
+            <div class="step-item" id="step-crawling">
+                <div class="step-dot">3</div>
+                <div class="step-label">Cào dữ liệu</div>
+            </div>
+            <div class="step-item" id="step-done">
+                <div class="step-dot">✓</div>
+                <div class="step-label">Hoàn thành</div>
+            </div>
         </div>
     </div>
 
@@ -511,6 +711,9 @@
             <h2 id="resultsTitle">Kết quả</h2>
             <div class="results-meta">
                 <span class="badge">Tổng: <strong id="totalPosts">0</strong></span>
+                <span class="badge badge-time" id="crawlDuration" style="display:none">
+                    ⏱️ <strong id="crawlDurationText">0</strong>
+                </span>
                 <button class="btn-export" onclick="exportJson()">📥 Xuất JSON</button>
             </div>
         </div>
@@ -548,6 +751,22 @@
 
 <script>
     let crawlData = null;
+    let crawlStartTime = null;
+    let elapsedInterval = null;
+
+    function formatElapsed(seconds) {
+        const m = Math.floor(seconds / 60);
+        const s = Math.floor(seconds % 60);
+        return `${String(m).padStart(2, '0')}:${String(s).padStart(2, '0')}`;
+    }
+
+    function formatDuration(seconds) {
+        if (seconds < 60) return `${Math.round(seconds)} giây`;
+        const m = Math.floor(seconds / 60);
+        const s = Math.round(seconds % 60);
+        if (s === 0) return `${m} phút`;
+        return `${m} phút ${s} giây`;
+    }
 
     async function startCrawl() {
         const groupUrl = document.getElementById('groupUrl').value.trim();
@@ -565,49 +784,194 @@
         btn.classList.add('loading');
         btn.disabled = true;
 
-        showStatus('Đang kết nối Chrome và đăng nhập Facebook...');
         hideError();
         hideResults();
+        showProgress();
+        startTimer();
 
         try {
-            const response = await fetch('/Home/Crawl', {
+            // Step 1: Start crawl session
+            const startResp = await fetch('/Home/StartCrawl', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
-                    groupUrl: groupUrl,
-                    dateFrom: dateFrom,
-                    dateTo: dateTo,
-                    maxPosts: maxPosts,
-                    clearCookies: clearCookies
+                    groupUrl, dateFrom, dateTo, maxPosts, clearCookies
                 })
             });
 
-            const data = await response.json();
-            crawlData = data;
-
-            if (!data.success) {
-                showError(data.error || 'Có lỗi xảy ra');
+            if (!startResp.ok) {
+                const errData = await startResp.json();
+                showError(errData.error || 'Không thể khởi tạo crawl');
+                resetButton();
                 return;
             }
 
-            showResults(data);
+            const { sessionId } = await startResp.json();
+
+            // Step 2: Listen for SSE progress
+            const evtSource = new EventSource(
+                `/Home/CrawlProgress?sessionId=${sessionId}`
+            );
+
+            evtSource.addEventListener('heartbeat', (e) => {
+                const data = JSON.parse(e.data);
+                document.getElementById('elapsedTime').textContent =
+                    formatElapsed(data.elapsed);
+            });
+
+            evtSource.addEventListener('progress', (e) => {
+                const data = JSON.parse(e.data);
+                updateProgress(data);
+            });
+
+            evtSource.addEventListener('result', (e) => {
+                evtSource.close();
+                stopTimer();
+
+                const data = JSON.parse(e.data);
+                crawlData = data;
+
+                if (!data.success) {
+                    showError(data.error || 'Có lỗi xảy ra');
+                    hideProgressPanel();
+                    resetButton();
+                    return;
+                }
+
+                // Mark done
+                updateStepState('done');
+                const bar = document.getElementById('progressBarFill');
+                bar.classList.remove('indeterminate');
+                bar.style.width = '100%';
+                document.getElementById('progressBarText').textContent = '100%';
+                document.getElementById('progressPhaseText').textContent = '✅ Hoàn thành!';
+                document.getElementById('progressMessage').textContent =
+                    `Đã cào ${data.total} bài viết`;
+
+                const elapsed = crawlStartTime
+                    ? (Date.now() - crawlStartTime) / 1000 : 0;
+
+                setTimeout(() => {
+                    hideProgressPanel();
+                    showResults(data, elapsed);
+                    resetButton();
+                }, 1200);
+            });
+
+            evtSource.addEventListener('error', (e) => {
+                if (evtSource.readyState === EventSource.CLOSED) return;
+                evtSource.close();
+                stopTimer();
+                showError('Mất kết nối đến server');
+                hideProgressPanel();
+                resetButton();
+            });
+
         } catch (err) {
+            stopTimer();
             showError('Lỗi kết nối: ' + err.message);
-        } finally {
-            btn.classList.remove('loading');
-            btn.disabled = false;
-            hideStatus();
+            hideProgressPanel();
+            resetButton();
         }
     }
 
-    function showStatus(text) {
-        const bar = document.getElementById('statusBar');
-        bar.classList.add('visible');
-        document.getElementById('statusText').textContent = text;
+    function updateProgress(data) {
+        const { phase, message, current, total, page } = data;
+
+        const phaseLabels = {
+            'login': '🔐 Đăng nhập Facebook',
+            'capture': '🎯 Bắt GraphQL config',
+            'crawling': '📥 Đang cào bài viết',
+            'done': '✅ Hoàn thành!'
+        };
+        document.getElementById('progressPhaseText').textContent =
+            phaseLabels[phase] || message;
+
+        updateStepState(phase);
+
+        const bar = document.getElementById('progressBarFill');
+        const barText = document.getElementById('progressBarText');
+
+        if (phase === 'crawling' && total > 0) {
+            bar.classList.remove('indeterminate');
+            // Map crawling progress to 30%-95% range
+            const rawPct = Math.round((current / total) * 100);
+            const mappedPct = Math.min(30 + Math.round(rawPct * 0.65), 95);
+            bar.style.width = mappedPct + '%';
+            barText.textContent = `${rawPct}% — ${current}/${total} bài`;
+        } else if (phase === 'done') {
+            bar.classList.remove('indeterminate');
+            bar.style.width = '100%';
+            barText.textContent = '✅ 100% hoàn thành';
+        } else if (phase === 'login') {
+            bar.classList.remove('indeterminate');
+            bar.style.width = '10%';
+            barText.textContent = '~10% — Đang đăng nhập...';
+        } else if (phase === 'capture') {
+            bar.classList.remove('indeterminate');
+            bar.style.width = '25%';
+            barText.textContent = '~25% — Đang bắt config...';
+        } else {
+            bar.classList.add('indeterminate');
+            barText.textContent = phaseLabels[phase] || message;
+        }
+
+        document.getElementById('progressMessage').textContent = message;
+        if (phase === 'crawling' && total > 0) {
+            document.getElementById('progressStats').textContent =
+                `Trang ${page} • ${current}/${total} bài`;
+        } else {
+            document.getElementById('progressStats').textContent =
+                message || '';
+        }
     }
 
-    function hideStatus() {
-        document.getElementById('statusBar').classList.remove('visible');
+    function updateStepState(activePhase) {
+        const steps = ['login', 'capture', 'crawling', 'done'];
+        const activeIdx = steps.indexOf(activePhase);
+        steps.forEach((step, i) => {
+            const el = document.getElementById(`step-${step}`);
+            el.classList.remove('active', 'done');
+            if (i < activeIdx) el.classList.add('done');
+            else if (i === activeIdx) el.classList.add('active');
+        });
+    }
+
+    function showProgress() {
+        document.getElementById('progressPanel').classList.add('visible');
+        document.getElementById('progressBarFill').className = 'progress-bar-fill indeterminate';
+        document.getElementById('progressBarFill').style.width = '0%';
+        document.getElementById('progressBarText').textContent = 'Đang chuẩn bị...';
+        document.getElementById('progressPhaseText').textContent = 'Đang khởi tạo...';
+        document.getElementById('progressMessage').textContent = 'Đang kết nối...';
+        document.getElementById('progressStats').textContent = '';
+        document.getElementById('elapsedTime').textContent = '00:00';
+        updateStepState('login');
+    }
+
+    function hideProgressPanel() {
+        document.getElementById('progressPanel').classList.remove('visible');
+    }
+
+    function startTimer() {
+        crawlStartTime = Date.now();
+        elapsedInterval = setInterval(() => {
+            const elapsed = (Date.now() - crawlStartTime) / 1000;
+            document.getElementById('elapsedTime').textContent = formatElapsed(elapsed);
+        }, 1000);
+    }
+
+    function stopTimer() {
+        if (elapsedInterval) {
+            clearInterval(elapsedInterval);
+            elapsedInterval = null;
+        }
+    }
+
+    function resetButton() {
+        const btn = document.getElementById('btnCrawl');
+        btn.classList.remove('loading');
+        btn.disabled = false;
     }
 
     function showError(msg) {
@@ -624,7 +988,7 @@
         document.getElementById('resultsWrapper').classList.remove('visible');
     }
 
-    function showResults(data) {
+    function showResults(data, elapsedSeconds) {
         document.getElementById('resultsWrapper').classList.add('visible');
 
         const title = data.group_name
@@ -632,6 +996,14 @@
             : `Kết quả: ${data.total} bài viết`;
         document.getElementById('resultsTitle').textContent = title;
         document.getElementById('totalPosts').textContent = data.total;
+
+        // Show duration badge
+        if (elapsedSeconds > 0) {
+            const durationBadge = document.getElementById('crawlDuration');
+            durationBadge.style.display = 'inline-block';
+            document.getElementById('crawlDurationText').textContent =
+                formatDuration(elapsedSeconds);
+        }
 
         // Build table
         const tbody = document.getElementById('postsBody');

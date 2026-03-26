@@ -53,6 +53,19 @@ def log(message):
     print(message, file=sys.stderr, flush=True)
 
 
+def emit_progress(phase, message, current=0, total=0, page=0):
+    """Emit structured progress via stderr for real-time UI updates."""
+    data = {
+        "phase": phase,
+        "message": message,
+        "current": current,
+        "total": total,
+        "page": page,
+    }
+    print(f"PROGRESS:{json.dumps(data, ensure_ascii=False)}",
+          file=sys.stderr, flush=True)
+
+
 def load_config():
     """Load GraphQL config (doc_id, etc.) from file."""
     default_config = {
@@ -279,8 +292,8 @@ def graphql_request(session, fb_dtsg, doc_id, variables):
         'doc_id': doc_id,
     }
 
-    # Random delay to mimic human behavior
-    delay = random.uniform(6.0, 12.0)
+    # Random delay to mimic human behavior (reduced for speed)
+    delay = random.uniform(2.0, 4.0)
     log(f"  Waiting {delay:.1f}s before request...")
     sleep(delay)
 
@@ -325,14 +338,8 @@ def parse_graphql_response(raw_text):
     with open(debug_file, 'w', encoding='utf-8') as f:
         f.write(text[:50000])
 
-    # Try parsing entire text as single JSON first
-    try:
-        data = json.loads(text)
-        return [data]
-    except json.JSONDecodeError:
-        pass
-
-    # FB sometimes returns multiple JSON objects separated by newlines
+    # FB returns streaming responses: multiple JSON objects per line
+    # ALWAYS try multi-line split FIRST to capture streamed stories
     lines = text.split('\n')
     results = []
     for line in lines:
@@ -346,6 +353,19 @@ def parse_graphql_response(raw_text):
             results.append(json.loads(line))
         except json.JSONDecodeError:
             continue
+
+    if results:
+        if len(results) > 1:
+            log(f"  Parsed {len(results)} JSON objects "
+                f"from streaming response")
+        return results
+
+    # Fallback: try parsing entire text as single JSON
+    try:
+        data = json.loads(text)
+        return [data]
+    except json.JSONDecodeError:
+        pass
 
     if not results:
         log(f"  Raw response length: {len(raw_text)}")
@@ -388,6 +408,14 @@ def extract_posts_from_response(response_data):
         edges = feed.get('edges', [])
         if not isinstance(edges, list):
             continue
+
+        # Debug: log edge count and type breakdown
+        type_counts = {}
+        for e in edges:
+            tn = e.get('node', {}).get('__typename', 'unknown')
+            type_counts[tn] = type_counts.get(tn, 0) + 1
+        log(f"  Format2 edges: {len(edges)} total, "
+            f"types: {type_counts}")
 
         page_info = feed.get('page_info', {})
         if page_info:
@@ -828,6 +856,8 @@ def crawl_group_posts(
     seen_ids = set()
     cursor = None
     page = 0
+    emit_progress("crawling", "B\u1eaft \u0111\u1ea7u c\u00e0o b\u00e0i vi\u1ebft...",
+                  0, max_posts)
 
     # Parse date filters (local timezone, not UTC)
     # Supports both datetime-local (YYYY-MM-DDTHH:MM)
@@ -874,6 +904,11 @@ def crawl_group_posts(
         page += 1
         log(f"  Page {page}: fetching posts "
             f"(cursor={str(cursor)[:30] if cursor else 'None'})")
+        emit_progress(
+            "crawling",
+            f"\u0110ang t\u1ea3i trang {page}...",
+            len(all_posts), max_posts, page
+        )
 
         # Build variables from captured template
         if page == 1:
@@ -890,8 +925,20 @@ def crawl_group_posts(
             # Clone the template and override pagination
             variables = dict(template)
             variables['id'] = group_id
-            variables['count'] = 30
             variables['cursor'] = cursor
+            # Force override ALL count-related keys
+            # FB uses different key names in different queries
+            for k in list(variables.keys()):
+                if k.lower() in ('count', 'first', 'numstories',
+                                 'stream_initial_count',
+                                 '__count__relay_internal'):
+                    log(f"  Override template key '{k}': "
+                        f"{variables[k]} -> 30")
+                    variables[k] = 30
+            if 'count' not in variables:
+                variables['count'] = 30
+            if page == 1:
+                log(f"  Template keys: {list(variables.keys())}")
         else:
             # Fallback minimal variables
             variables = {
@@ -961,6 +1008,12 @@ def crawl_group_posts(
                 f"{new_count} new unique, "
                 f"{old_count} too old "
                 f"(total: {len(all_posts)})")
+            emit_progress(
+                "crawling",
+                f"Trang {page}: +{new_count} b\u00e0i m\u1edbi "
+                f"({len(all_posts)}/{max_posts})",
+                len(all_posts), max_posts, page
+            )
 
             # Early stop: CHRONOLOGICAL sort = newest first
             # If all posts on this page are older than
@@ -1281,6 +1334,7 @@ def main():
 
     # Phase 1: Login + extract tokens + auto-capture doc_id
     log("Phase 1: Login & extract tokens")
+    emit_progress("login", "\u0110ang m\u1edf Chrome v\u00e0 \u0111\u0103ng nh\u1eadp Facebook...")
     driver = None
     group_id = args.group_id
     group_name = ""
@@ -1316,6 +1370,8 @@ def main():
         fb_dtsg = extract_fb_dtsg(driver)
         log(f"fb_dtsg: {fb_dtsg[:20]}...")
 
+        emit_progress("capture",
+                      "\u0110ang b\u1eaft GraphQL config t\u1eeb Facebook...")
         # Auto-capture doc_id AND variables template
         need_capture = (
             not config.get('doc_id')
@@ -1379,6 +1435,9 @@ def main():
 
     # Phase 2: GraphQL HTTP requests
     log("\nPhase 2: Crawling via GraphQL")
+    emit_progress("crawling",
+                  "B\u1eaft \u0111\u1ea7u c\u00e0o b\u00e0i vi\u1ebft qua GraphQL...",
+                  0, args.max)
     session = build_session(cookies, config.get('user_agent', ''))
 
     try:
@@ -1401,6 +1460,9 @@ def main():
             "has_more": len(posts) >= args.max,
         }
 
+        emit_progress("done",
+                      f"Ho\u00e0n th\u00e0nh: {len(posts)} b\u00e0i vi\u1ebft",
+                      len(posts), args.max)
         log(f"\nDone: {len(posts)} posts crawled")
         print(json.dumps(result, ensure_ascii=False, indent=2))
 
