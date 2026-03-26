@@ -1,3 +1,7 @@
+---
+trigger: always_on
+---
+
 # Team Coordination Rules
 
 > These rules only apply when operating as a teammate within an Agent Team.

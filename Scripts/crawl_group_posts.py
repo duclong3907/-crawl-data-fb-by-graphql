@@ -280,7 +280,7 @@ def graphql_request(session, fb_dtsg, doc_id, variables):
     }
 
     # Random delay to mimic human behavior
-    delay = random.uniform(1.5, 4.0)
+    delay = random.uniform(6.0, 12.0)
     log(f"  Waiting {delay:.1f}s before request...")
     sleep(delay)
 
@@ -809,12 +809,12 @@ def extract_media(node, depth=0):
 
 
 def format_timestamp(ts):
-    """Format unix timestamp to readable string."""
+    """Format unix timestamp to readable string (local timezone)."""
     if not ts:
         return ""
     try:
-        dt = datetime.fromtimestamp(ts, tz=timezone.utc)
-        return dt.strftime('%Y-%m-%d %H:%M:%S UTC')
+        dt = datetime.fromtimestamp(ts)
+        return dt.strftime('%Y-%m-%d %H:%M:%S')
     except Exception:
         return str(ts)
 
@@ -830,12 +830,20 @@ def crawl_group_posts(
     page = 0
 
     # Parse date filters (local timezone, not UTC)
+    # Supports both datetime-local (YYYY-MM-DDTHH:MM)
+    # and date-only (YYYY-MM-DD) formats
     ts_from = 0
     ts_to = int(time.time()) + 86400  # tomorrow
     if date_from:
         try:
-            dt = datetime.strptime(date_from, '%Y-%m-%d')
-            # Use local timezone (no tzinfo = local)
+            # Try datetime-local format first
+            try:
+                dt = datetime.strptime(
+                    date_from, '%Y-%m-%dT%H:%M')
+            except ValueError:
+                # Fallback: date-only → start of day
+                dt = datetime.strptime(
+                    date_from, '%Y-%m-%d')
             ts_from = int(dt.timestamp())
             log(f"  Filter from: {date_from} "
                 f"(ts={ts_from})")
@@ -844,9 +852,17 @@ def crawl_group_posts(
                 "ignoring")
     if date_to:
         try:
-            dt = datetime.strptime(date_to, '%Y-%m-%d')
-            # End of day in local timezone
-            ts_to = int(dt.timestamp()) + 86400
+            # Try datetime-local format first
+            try:
+                dt = datetime.strptime(
+                    date_to, '%Y-%m-%dT%H:%M')
+                # Exact minute specified
+                ts_to = int(dt.timestamp()) + 60
+            except ValueError:
+                # Fallback: date-only → end of day
+                dt = datetime.strptime(
+                    date_to, '%Y-%m-%d')
+                ts_to = int(dt.timestamp()) + 86400
             log(f"  Filter to: {date_to} "
                 f"(ts={ts_to})")
         except ValueError:
@@ -874,7 +890,7 @@ def crawl_group_posts(
             # Clone the template and override pagination
             variables = dict(template)
             variables['id'] = group_id
-            variables['count'] = 10
+            variables['count'] = 30
             variables['cursor'] = cursor
         else:
             # Fallback minimal variables
@@ -922,6 +938,7 @@ def crawl_group_posts(
 
             # Filter by date + dedup
             new_count = 0
+            old_count = 0  # Track posts older than date_from
             for post in posts:
                 pid = post.get('post_id', '')
                 if pid in seen_ids:
@@ -930,6 +947,7 @@ def crawl_group_posts(
 
                 ts = post.get('created_time', 0)
                 if ts and ts_from and ts < ts_from:
+                    old_count += 1
                     continue  # Before range, skip
                 if ts and ts > ts_to:
                     continue  # After range, skip
@@ -940,8 +958,17 @@ def crawl_group_posts(
                     break
 
             log(f"  Page {page}: {len(posts)} raw, "
-                f"{new_count} new unique "
+                f"{new_count} new unique, "
+                f"{old_count} too old "
                 f"(total: {len(all_posts)})")
+
+            # Early stop: CHRONOLOGICAL sort = newest first
+            # If all posts on this page are older than
+            # date_from, no point continuing
+            if ts_from and old_count > 0 and new_count == 0:
+                log("  ⏹ Early stop: all posts on this "
+                    "page are older than date_from")
+                break
 
             if not has_next or not next_cursor:
                 log("  No more pages")

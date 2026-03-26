@@ -5,7 +5,7 @@ trigger: always_on
 # Orchestration Protocol
 
 ## Delegation Context (MANDATORY) 
-
+ 
 When spawning subagents via Task tool, **ALWAYS** include in prompt:
 
 1. **Work Context Path**: The git root of the PRIMARY files being worked on

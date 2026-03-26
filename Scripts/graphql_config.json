@@ -1,8 +1,8 @@
 {
   "doc_id": "26209342375399865",
-  "user_agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Safari/537.36",
+  "user_agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Safari/537.36",
   "variables_template": {
-    "count": 3,
+    "count": 30,
     "cursor": "Cg8TZXhpc3RpbmdfdW5pdF9jb3VudAICDwtyZWFsX2N1cnNvcg+fQVFIUzN6ZnBwXzd6ZEc1Z0Fkd2J6emp5LVM4d3pCRzZDck9PT0hCemhRTjlqUG1aWUZtOHRQVDhrZnR0b2lURU5wemswb1FZaF96SHNoVWoyVkM4bk90OW9BOmV5SXdJam94TnpjME5EWXpNakExTENJeElqbzNOamd5TENJeklqb3dMQ0kwSWpveExDSTFJam95TENJMklqb3dmUT09DxNoZWFkZXJfZ2xvYmFsX2NvdW50AgEPEm1haW5fZmVlZF9wb3NpdGlvbgICDw1mZWVkX29yZGVyaW5nDxtyYW5rZWRfaW50ZXJlc3RfY29tbXVuaXRpZXMPE2lzX2V2ZXJncmVlbl9jdXJzb3IRAA8iaXNfb2ZmbGluZV9hZ2dyZWdhdGVkX3Bvc3RzX2N1cnNvchEADxJncm91cF9mZWVkX3ZlcnNpb24PAlYyDxBkZW1vdGVkX3Bvc3RfaWRzCgEB",
     "feedLocation": "GROUP",
     "feedType": "DISCUSSION",
@@ -13,7 +13,7 @@
     "referringStoryRenderLocation": null,
     "renderLocation": "group",
     "scale": 1,
-    "sortingSetting": "TOP_POSTS",
+    "sortingSetting": "CHRONOLOGICAL",
     "stream_initial_count": 1,
     "useDefaultActor": false,
     "id": "959361829971673",
